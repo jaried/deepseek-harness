@@ -18,7 +18,7 @@ import type { ScopeKey, ScopeLayer } from '@deepseek-ai/dsh-scope'
 import z from '@deepseek-ai/schemastery'
 import type Schema from '@deepseek-ai/schemastery'
 
-const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const SKILL_NAME = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/
 const DEFAULT_COLLECT_CACHE_ENTRIES = 128
 const MAX_COLLECT_ATTEMPTS = 2
 const RUNTIME_PROVIDER = 'runtime'
@@ -28,7 +28,7 @@ const RUNTIME_RANK = 250
 export const BUNDLED_SKILL_RANK = 600
 
 /**
- * Return whether a string is a valid kebab-case skill name.
+ * Return whether a name contains lowercase alphanumeric groups separated by single hyphens or underscores.
  * @param name - candidate skill name to validate.
  * @returns whether the name matches the public skill-name grammar.
  */
@@ -57,7 +57,7 @@ export interface SkillInvocationPolicy {
 export interface SkillSummary {
   /** Absolute instruction file path when supplied by the provider; absent for virtual skills. */
   readonly path?: string
-  /** Kebab-case identifier used to address the skill. */
+  /** Exact identifier accepted by isSkillName, used to address the skill. */
   readonly name: string
   /** Short routing description shown by discovery consumers. */
   readonly description: string
@@ -492,7 +492,7 @@ export class SkillRegistry extends Service {
    * Load and validate the winning candidate, passing its opaque discovery locator back to the
    * provider. Cancellation is rechecked after selection, including cache hits, and raced against
    * loading so an uncooperative provider cannot hang the caller.
-   * @param name - kebab-case skill name.
+   * @param name - exact skill name.
    * @param options - view options; `scope` selects the viewing agent's layers,
    *   `cwd` selects workspace-sensitive skills, and `signal` cancels work.
    * @returns the full skill, including body content, or `undefined`.

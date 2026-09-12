@@ -97,6 +97,8 @@ interface SkillRoot {
   trustedHost?: boolean
 }
 
+type RootIdentityNamespace = 'backend-targetKey' | 'host-canonical-path' | 'missing-placeholder'
+
 interface SkillRootEntry {
   name: string
   type: 'directory' | 'file' | 'other'
@@ -184,7 +186,7 @@ export class FileSystemSkillProvider implements SkillProvider {
    *   failure returns readable candidates as an incomplete observation.
    */
   async list(options: SkillLookupOptions): Promise<SkillCandidate[] | SkillProviderObservation> {
-    const roots = await this.roots(options.cwd)
+    const roots = await this.roots(options.cwd, options.signal)
     let complete = true
     try {
       await this.watchManager.observeRoots(roots)
@@ -242,26 +244,122 @@ export class FileSystemSkillProvider implements SkillProvider {
     return this.disposal
   }
 
-  private async roots(cwd: string | undefined): Promise<SkillRoot[]> {
+  private async roots(cwd: string | undefined, signal: AbortSignal | undefined): Promise<SkillRoot[]> {
     const roots: SkillRoot[] = []
     if (this.includeDefaultRoots && cwd !== undefined) {
       const projectRoot = await findProjectRoot(resolve(cwd), optionalFileSystem(this.ctx))
+      signal?.throwIfAborted()
       roots.push(
         { path: join(projectRoot, '.dsh/skills'), source: 'project-dsh', rank: PROJECT_DSH_RANK, projectRoot },
-        { path: join(projectRoot, '.agents/skills'), source: 'project-agents', rank: PROJECT_AGENTS_RANK, projectRoot },
+        ...agentAliasRoots(projectRoot, 'project-agents', PROJECT_AGENTS_RANK, projectRoot),
       )
     }
     roots.push(...this.customSkillDirs.map(path => ({ path, source: 'custom' as const, rank: CUSTOM_RANK })))
     if (this.includeDefaultRoots) {
       roots.push(
         { path: join(this.dshHome, 'skills'), source: 'user-dsh', rank: USER_DSH_RANK, skipSystem: true },
-        { path: join(this.agentsHome, 'skills'), source: 'user-agents', rank: USER_AGENTS_RANK },
+        ...userAgentRoots(this.agentsHome),
       )
     }
     if (this.bundledSkillDir !== undefined) {
       roots.push({ path: this.bundledSkillDir, source: 'bundled', rank: BUNDLED_SKILL_RANK, trustedHost: true })
     }
-    return roots
+    return await dedupeRoots(roots, optionalFileSystem(this.ctx), signal)
+  }
+}
+
+function agentAliasRoots(
+  base: string,
+  source: Extract<SkillSource, 'project-agents' | 'user-agents'>,
+  rank: number,
+  projectRoot?: string,
+): SkillRoot[] {
+  return (['.agents', '.claude', '.codex'] as const).map(alias => ({
+    path: join(base, alias, 'skills'),
+    source,
+    rank,
+    ...(alias === '.codex' ? { skipSystem: true } : {}),
+    ...(projectRoot === undefined ? {} : { projectRoot }),
+  }))
+}
+
+function userAgentRoots(agentsHome: string): SkillRoot[] {
+  const source = 'user-agents' as const
+  const rank = USER_AGENTS_RANK
+  return [
+    { path: join(agentsHome, 'skills'), source, rank },
+    { path: join(dirname(agentsHome), '.claude/skills'), source, rank },
+    { path: join(dirname(agentsHome), '.codex/skills'), source, rank, skipSystem: true },
+  ]
+}
+
+async function dedupeRoots(
+  roots: readonly SkillRoot[],
+  fs: FileSystem | undefined,
+  signal: AbortSignal | undefined,
+): Promise<SkillRoot[]> {
+  const identities = new Map<string, number>()
+  const unique: SkillRoot[] = []
+  for (const root of roots) {
+    const identity = await resolveRootIdentity(root, fs, signal)
+    const existing = identities.get(identity)
+    if (existing !== undefined) {
+      const existingRoot = unique[existing]
+      if (root.skipSystem === true && existingRoot !== undefined && existingRoot.skipSystem !== true) {
+        unique[existing] = { ...existingRoot, skipSystem: true }
+      }
+      continue
+    }
+    identities.set(identity, unique.length)
+    unique.push(root)
+  }
+  return unique
+}
+
+async function resolveRootIdentity(
+  root: SkillRoot,
+  fs: FileSystem | undefined,
+  signal: AbortSignal | undefined,
+): Promise<string> {
+  signal?.throwIfAborted()
+  if (fs !== undefined && root.trustedHost !== true) {
+    try {
+      const target = await fs.resolve(root.path, signal === undefined ? undefined : { signal })
+      signal?.throwIfAborted()
+      return namespacedRootIdentity('backend-targetKey', String(target.targetKey))
+    } catch (error) {
+      signal?.throwIfAborted()
+      if (isAbsentSkillPathError(error)) return namespacedRootIdentity('missing-placeholder', resolve(root.path))
+      throw error
+    }
+  }
+  if (!await hostRootExists(root.path)) {
+    signal?.throwIfAborted()
+    return namespacedRootIdentity('missing-placeholder', resolve(root.path))
+  }
+  signal?.throwIfAborted()
+  try {
+    const canonical = await canonicalizeWatchPath(root.path)
+    signal?.throwIfAborted()
+    return namespacedRootIdentity('host-canonical-path', canonical)
+  } catch (error) {
+    signal?.throwIfAborted()
+    if (isAbsentSkillPathError(error)) return namespacedRootIdentity('missing-placeholder', resolve(root.path))
+    throw error
+  }
+}
+
+function namespacedRootIdentity(namespace: RootIdentityNamespace, key: string): string {
+  return `${namespace}:${key}`
+}
+
+async function hostRootExists(path: string): Promise<boolean> {
+  try {
+    await access(path)
+    return true
+  } catch (error) {
+    if (isAbsentPathError(error)) return false
+    throw error
   }
 }
 
@@ -301,9 +399,11 @@ class SkillWatchManager {
   async observeRoots(roots: readonly SkillRoot[]): Promise<void> {
     if (this.closing) return
     const projectRoots = new Map<string, SkillRoot[]>()
+    const sharedPaths = new Set<string>()
     const pending: Promise<void>[] = []
     for (const root of roots) {
       if (root.projectRoot === undefined) {
+        sharedPaths.add(root.path)
         pending.push(this.retainRoot(root, `shared:${root.path}`))
         continue
       }
@@ -311,12 +411,20 @@ class SkillWatchManager {
       grouped.push(root)
       projectRoots.set(root.projectRoot, grouped)
     }
+    for (const [path, state] of this.roots) {
+      const owner = `shared:${path}`
+      if (state.owners.has(owner) && !sharedPaths.has(path)) pending.push(this.releaseRoot(path, owner))
+    }
     for (const [projectRoot, grouped] of projectRoots) {
       const owner = `project:${projectRoot}`
+      const previousPaths = this.projects.get(projectRoot)
       this.projects.delete(projectRoot)
       const paths = new Set(grouped.map(root => root.path))
       this.projects.set(projectRoot, paths)
       for (const root of grouped) pending.push(this.retainRoot(root, owner))
+      for (const path of previousPaths ?? []) {
+        if (!paths.has(path)) pending.push(this.releaseRoot(path, owner))
+      }
     }
     let evictedProject = false
     while (this.projects.size > this.config.maxProjects) {
@@ -360,6 +468,7 @@ class SkillWatchManager {
       state = { root, owners: new Set(), watcher: undefined, opening: undefined, unhealthy: true }
       this.roots.set(root.path, state)
     }
+    state.root = root
     state.owners.add(owner)
     if (this.config.enabled) await this.ensureWatcher(state)
   }

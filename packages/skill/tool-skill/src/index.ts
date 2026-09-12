@@ -406,7 +406,7 @@ function assertPositiveInteger(name: string, value: number, minimum = 1): void {
  * `/` or any non-boundary character breaks the match, which keeps file paths
  * (`/usr/bin`) and fractions (`5/8`) out.
  */
-const SKILL_GESTURE = /(^|\s)\/([a-z0-9]+(?:-[a-z0-9]+)*)(?=\s|$)/g
+const SKILL_GESTURE = /(^|\s)\/([a-z0-9_-]+)(?=\s|$)/g
 
 /**
  * `/name` gesture tokens from the claimed user messages, deduplicated in
@@ -423,7 +423,7 @@ function invokedSkillNames(messages: readonly UserMessage[]): string[] {
       if (block.type !== 'text') continue
       for (const match of block.text.matchAll(SKILL_GESTURE)) {
         const name = match[2]
-        if (name !== undefined && !names.includes(name)) names.push(name)
+        if (name !== undefined && isSkillName(name) && !names.includes(name)) names.push(name)
       }
     }
   }

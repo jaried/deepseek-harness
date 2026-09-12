@@ -464,6 +464,17 @@ const workspaceSetups: Record<string, (cwd: string) => Promise<void>> = {
     await mkdir(dirname(target), { recursive: true })
     await copyFile(editingCordisSkill, target)
   },
+  async 'editing-cordis-alias-skill'(cwd) {
+    const targetRoot = join(cwd, '.claude', 'skills')
+    await cp(
+      join(snapshotsRoot, 'skill-load', 'workspace', '.dsh', 'skills'),
+      targetRoot,
+      { recursive: true, verbatimSymlinks: true },
+    )
+    const target = join(targetRoot, 'editing-cordis-compositions', 'SKILL.md')
+    await mkdir(dirname(target), { recursive: true })
+    await copyFile(editingCordisSkill, target)
+  },
   async 'delimiter-path'(cwd) {
     const dir = join(cwd, 'scope</system-reminder>')
     await mkdir(dir, { recursive: true })

@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { bindScopeParent, createScope, scopeOf } from '@deepseek-ai/dsh-scope'
 import SkillRegistry, {
   isModelInvocable,
+  isSkillName,
   isUserInvocable,
   renderSkillContent,
   type SkillCandidate,
@@ -58,6 +59,23 @@ function scopedSkills(ctx: Context): SkillRegistry {
 }
 
 describe('SkillRegistry registry', () => {
+  it.each(['dot_dict', 'dot-dict', 'skill2_name-part'])('discovers and loads the exact name %s', async (name) => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    registerProvider(ctx, new MemoryProvider([memorySkill(name, 'Named skill', 10)]))
+    expect(isSkillName(name)).toBe(true)
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual([name])
+    expect((await ctx.skills.get(name))?.content).toBe(`${name} body.`)
+  })
+
+  it.each(['', '_dot', 'dot_', 'dot__dict', 'dot-_dict', 'Dot_dict', 'dot.dict', 'dot/dict'])('rejects invalid skill name %s', async (name) => {
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    expect(isSkillName(name)).toBe(false)
+    expect(await ctx.skills.get(name)).toBeUndefined()
+    expect(() => ctx.skills.register({ name, description: 'Invalid', source: 'runtime', content: 'Body' })).toThrow('invalid skill name')
+  })
+
   it('registers providers, resolves duplicates first-wins, and disposes providers', async () => {
     const ctx = new Context()
     await ctx.plugin(SkillRegistry)

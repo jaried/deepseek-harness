@@ -191,6 +191,30 @@ describe('candidates: sessionId addressing', () => {
     await expect(names('zzz')).resolves.toEqual([])
   })
 
+  it('matches /ddict to dot_dict and picks the real skill name', async () => {
+    const { source } = await bench(listOk([
+      { name: 'dot_dict', description: 'Dictionary utilities', modelInvocable: true },
+    ]))
+    await expect(source.candidates(proj('s1'), req('ddict'))).resolves.toEqual([
+      { name: 'dot_dict', description: 'Dictionary utilities' },
+    ])
+    await expect(source.candidates(proj('s1'), req('DDICT'))).resolves.toEqual([
+      { name: 'dot_dict', description: 'Dictionary utilities' },
+    ])
+    await expect(source.candidates(proj('s1'), req('dot_dict'))).resolves.toEqual([
+      { name: 'dot_dict', description: 'Dictionary utilities' },
+    ])
+    await expect(source.candidates(proj('s1'), req('dictd'))).resolves.toEqual([])
+    expect(source.onPick({
+      candidate: { name: 'dot_dict', description: 'Dictionary utilities' },
+      session: proj('s1'),
+      position: 'leading',
+      via: 'menu',
+      action: 'pick',
+      span: { start: 0, end: 6, draftRev: 1 },
+    })).toEqual({ text: '/dot_dict ' })
+  })
+
   it('rejects on a failed result (the slash shell owns the menu-side fold)', async () => {
     const { source } = await bench(() => Promise.resolve({
       ok: false, error: new RemoteError('gateway/internal', 'boom', {}),

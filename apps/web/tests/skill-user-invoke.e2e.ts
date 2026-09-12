@@ -32,6 +32,7 @@ const MODE = webSnapshotMode()
 const SKILL_NAME = 'user-invoke-demo'
 const ARGS_TEXT = '@"meeting notes.md" and confirm the fixture wiring'
 const REPLY = 'USER_INVOKE_REPLY acknowledged; following the injected skill.'
+const ALIAS_REPLY = 'ALIAS_INVOKE_REPLY acknowledged; following dot_dict.'
 
 async function seedUserOnlySkill(workspaceCwd: string): Promise<void> {
   const directory = join(workspaceCwd, 'workspace', '.agents', 'skills', SKILL_NAME)
@@ -46,6 +47,21 @@ async function seedUserOnlySkill(workspaceCwd: string): Promise<void> {
     'Reply with the fixture acknowledgement line.',
     '',
   ].join('\n'))
+
+}
+
+async function seedAliasSkill(workspaceCwd: string): Promise<void> {
+  const aliasDirectory = join(workspaceCwd, 'workspace', '.claude', 'skills', 'dot_dict')
+  await mkdir(aliasDirectory, { recursive: true })
+  await writeFile(join(aliasDirectory, 'SKILL.md'), [
+    '---',
+    'name: dot_dict',
+    'description: Prove discovery through the Claude skill alias',
+    '---',
+    '',
+    'Reply with the alias fixture acknowledgement line.',
+    '',
+  ].join('\n'))
 }
 
 const REPLAY: ReplayOverrideDoc = [{
@@ -54,6 +70,15 @@ const REPLAY: ReplayOverrideDoc = [{
     { type: 'block-start', index: 0, blockType: 'text' },
     { type: 'text-delta', index: 0, text: REPLY },
     { type: 'block-end', index: 0, block: { type: 'text', text: REPLY } },
+    { type: 'usage', usage: { inputTokens: 256, outputTokens: 16 } },
+    { type: 'finish', reason: { kind: 'stop' } },
+  ],
+}, {
+  kind: 'chunks',
+  chunks: [
+    { type: 'block-start', index: 0, blockType: 'text' },
+    { type: 'text-delta', index: 0, text: ALIAS_REPLY },
+    { type: 'block-end', index: 0, block: { type: 'text', text: ALIAS_REPLY } },
     { type: 'usage', usage: { inputTokens: 256, outputTokens: 16 } },
     { type: 'finish', reason: { kind: 'stop' } },
   ],
@@ -156,9 +181,52 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
       scaffold.workspaceCwd,
     )
     await compareOrRefreshGolden(UI_EXPANDED_EXPECTED, expanded, MODE)
+    await seedAliasSkill(scaffold.workspaceCwd)
+    const workspaceCwd = join(scaffold.workspaceCwd, 'workspace')
+    const skills = scaffold.ctx.get('skills')
+    if (skills === undefined) throw new Error('the Web scaffold has no skill registry')
+    const agent = scaffold.ctx.agents.list().find(candidate => candidate.session.header.cwd === workspaceCwd)
+    if (agent === undefined) throw new Error(`no live agent for ${workspaceCwd}`)
+    await expect.poll(async () => (await skills.list({ cwd: workspaceCwd, scope: agent })).map(skill => skill.name), { timeout: 10_000 }).toContain('dot_dict')
+    const catalog = await skills.list({ cwd: workspaceCwd, scope: agent })
+    expect(catalog.map(skill => skill.name)).toContain('dot_dict')
+    expect(catalog.find(skill => skill.name === 'dot_dict')).toMatchObject({
+      name: 'dot_dict',
+      description: 'Prove discovery through the Claude skill alias',
+    })
+
+    await page.reload({ waitUntil: 'load' })
+    await composer.waitFor({ timeout: 15_000 })
+    await composer.fill('/ddict')
+    const aliasMenu = page.getByRole('listbox', { name: 'Trigger suggestions' })
+    await expect.poll(
+      () => aliasMenu.getByRole('option', { name: /dot_dict/ }).count(),
+      { timeout: 10_000 },
+    ).toBe(1)
+    await aliasMenu.getByRole('option', { name: /dot_dict/ }).click()
+    await expect.poll(() => composer.textContent()).toBe('/dot_dict ')
+    const loadedAlias = await skills.get('dot_dict', { cwd: workspaceCwd, scope: agent })
+    expect(loadedAlias).toMatchObject({
+      name: 'dot_dict',
+      path: join(workspaceCwd, '.claude', 'skills', 'dot_dict', 'SKILL.md'),
+      resourceBase: { kind: 'directory', path: join(workspaceCwd, '.claude', 'skills', 'dot_dict') },
+      content: 'Reply with the alias fixture acknowledgement line.',
+    })
+
+    const aliasSettled = scaffold.whenTurnSettled()
+    await composer.press('Enter')
+    await page.getByText('ALIAS_INVOKE_REPLY', { exact: false }).first().waitFor({ timeout: 20_000 })
+    await aliasSettled
+    const aliasFlow = page.locator('[data-chat-flow-kind="context"]').filter({ hasText: 'dot_dict' })
+    await aliasFlow.waitFor({ state: 'attached', timeout: 15_000 })
+    await expandOwningTurnProcess(page, aliasFlow)
+    await page.getByRole('button', { name: 'Context injection dot_dict', exact: true }).click()
+    const aliasBody = page.locator('[data-context-injection-body]').filter({ hasText: '<skill_content name="dot_dict">' })
+    await aliasBody.waitFor({ timeout: 10_000 })
+    expect(await aliasBody.textContent()).toContain('Reply with the alias fixture acknowledgement line.')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-  }, 60_000)
+  }, 90_000)
 
   it('previews sent skill and quoted file references with prose-link hover styling after reloading history', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-sent-reference-preview'))

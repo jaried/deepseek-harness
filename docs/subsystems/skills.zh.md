@@ -82,7 +82,7 @@ Chokidar 会监视现有根目录中直属 bundle 和平铺条目的添加与移
 
 ## skill 身份
 
-skill 名称为 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）。本地提供方接受目录包（`<name>/SKILL.md`）和扁平 Markdown 文件（`<name>.md`）。嵌套递归的 `**/SKILL.md` 发现不受支持。
+skill 名称由小写字母数字组构成，组间以单个连字符或下划线分隔（`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`）。本地提供方接受目录包（`<name>/SKILL.md`）和扁平 Markdown 文件（`<name>.md`）。嵌套递归的 `**/SKILL.md` 发现不受支持。
 
 ```ts type-equiv
 /** Origin bucket for a skill contribution. The value is prompt-visible metadata, not precedence by itself. */
@@ -108,7 +108,7 @@ interface SkillInvocationPolicy {
 interface SkillSummary {
   /** Absolute instruction file path when supplied by the provider; absent for virtual skills. */
   readonly path?: string
-  /** Kebab-case identifier used to address the skill. */
+  /** Exact identifier accepted by isSkillName, used to address the skill. */
   readonly name: string
   /** Short routing description shown by discovery consumers. */
   readonly description: string
@@ -230,7 +230,7 @@ interface Config {
 
 在后续每个模型步骤之前，消费方都会应用精确的工具可见性，并对完整快照中 `<available_skills>` 标签之间精确渲染的条目计算 digest。它以该插件所发布、最新一条可识别且仍可见的目录消息中的相同条目作为比较基线。digest 发生变化时，会通过 `agent.inject()` 追加一条持久的完整目录替换；删除所有 skill 时会追加一条显式的空替换。不完整快照会保留上一份可用模型视图。如果压缩（compaction）隐藏了所有历史目录消息，下一份完整快照会重新建立当前目录；如果视图为空且从未发布目录，则不发送任何内容。这些目录消息属于会话历史，而非 World State。
 
-面向模型的 `skill({ name })` 工具校验 kebab-case 名称，在与调用策略无关的目录中查找摘要，并在加载前通过 `isModelInvocable` 拒绝无权访问的 skill；随后它根据调用方 agent 的 cwd 重新读取完整定义，并在返回内容前再次检查策略。该工具将无法解析的 skill 报告为未知或已不可用，并返回包含 `<skill_content name="...">`、`<skill_resources>` 和 `<skill_instructions>` 的工具结果。`resourceBase` 仅按需解析显式引用的脚本、参考资料和资产；加载结果不枚举 skill 目录。因此，仅修改正文会改变后续工具调用，而不会生成目录消息或改写先前工具结果。
+面向模型的 `skill({ name })` 工具通过 `isSkillName` 校验名称，在与调用策略无关的目录中查找摘要，并在加载前通过 `isModelInvocable` 拒绝无权访问的 skill；随后它根据调用方 agent 的 cwd 重新读取完整定义，并在返回内容前再次检查策略。该工具将无法解析的 skill 报告为未知或已不可用，并返回包含 `<skill_content name="...">`、`<skill_resources>` 和 `<skill_instructions>` 的工具结果。`resourceBase` 仅按需解析显式引用的脚本、参考资料和资产；加载结果不枚举 skill 目录。因此，仅修改正文会改变后续工具调用，而不会生成目录消息或改写先前工具结果。
 
 ## 浏览器 Session 目录
 
@@ -317,7 +317,7 @@ async snapshot(options: SkillViewOptions = {}): Promise<SkillCatalogSnapshot>
  * Load and validate the winning candidate, passing its opaque discovery locator back to the
  * provider. Cancellation is rechecked after selection, including cache hits, and raced against
  * loading so an uncooperative provider cannot hang the caller.
- * @param name - kebab-case skill name.
+ * @param name - exact skill name.
  * @param options - view options; `scope` selects the viewing agent's layers,
  *   `cwd` selects workspace-sensitive skills, and `signal` cancels work.
  * @returns the full skill, including body content, or `undefined`.

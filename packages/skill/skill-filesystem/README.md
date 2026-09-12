@@ -48,12 +48,14 @@ Default roots are scanned in this provider's rank order:
 | Rank | Source | Path |
 |---|---|---|
 | 100 | `project-dsh` | `<projectRoot>/.dsh/skills` |
-| 200 | `project-agents` | `<projectRoot>/.agents/skills` |
+| 200 | `project-agents` | `<projectRoot>/.agents/skills` → `.claude/skills` → `.codex/skills` |
 | 300 | `custom` | `Config.customSkillDirs` |
 | 400 | `user-dsh` | `<dshHome>/skills` |
-| 500 | `user-agents` | `<agentsHome>/skills` |
+| 500 | `user-agents` | `<agentsHome>/skills` → `dirname(<agentsHome>)/.claude/skills` → `dirname(<agentsHome>)/.codex/skills` |
 
 The project root is the nearest ancestor containing `.git`; without one, the current cwd is used. The user DSH root skips its `.system` child. `includeDefaultRoots: false` omits the project and user rows plus the `$DSH_BUNDLED_SKILL_DIR` default so an isolated provider sees only its own configured roots; `bundledSkillDir` adds a bundled root at rank 600.
+
+Each agent layer uses `.agents`, `.claude`, and `.codex` in declaration order. The configured `agentsHome/skills` root remains first, while the two user aliases come from its parent directory. A `.codex/skills/.system` directory is excluded from discovery and watcher events. Before discovery and watcher registration, the provider deduplicates roots by a namespaced filesystem `targetKey`, canonical host path, or missing-root placeholder; the first descriptor keeps its path, source, rank, and loading behavior, and duplicate descriptors merge `skipSystem` with logical OR.
 
 ### Mount and configure
 
@@ -107,7 +109,7 @@ The provider is built on two separations. First, catalog versus body: discovery 
 
 ### Discovery flow
 
-Discovery resolves the root list for the lookup cwd, asks the watch manager to attach to each root, then scans each root's direct entries: directory bundles resolve `<name>/SKILL.md`, flat files resolve `<name>.md`. Each file is parsed for frontmatter — `name` must be kebab-case, `description` is required, and the invocation keys resolve through the strict boolean grammar — and candidates carry the root's source label and rank so the registry can merge them with other providers. Confirmed missing paths are valid empty state; malformed or non-text entries warn and skip.
+Discovery resolves the root list for the lookup cwd, asks the watch manager to attach to each root, then scans each root's direct entries: directory bundles resolve `<name>/SKILL.md`, flat files resolve `<name>.md`. Each file is parsed for frontmatter — `name` must pass the shared `isSkillName` grammar, `description` is required, and the invocation keys resolve through the strict boolean grammar — and candidates carry the root's source label and rank so the registry can merge them with other providers. Confirmed missing paths are valid empty state; malformed or non-text entries warn and skip.
 
 ### Watching and invalidation
 

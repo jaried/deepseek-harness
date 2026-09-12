@@ -1022,6 +1022,23 @@ describe('user-explicit invocation injection', () => {
     expect(block.text).not.toContain('what does this do')
   })
 
+  it('loads a Claude alias skill and injects its underscore name from a user gesture', async () => {
+    const home = await tempDir('underscore-invoke')
+    await writePolicySkill(join(home, '.claude', 'skills'), 'dot_dict', 'Underscore skill', '', 'Actual dot_dict instructions.')
+    const ctx = await setup(home)
+    const agent = agentForCwd(home)
+    const decision = await proposeStep(ctx, agent, [gesture('/dot_dict use this skill')])
+    if (decision.kind !== 'enter') throw new Error('expected enter')
+    const injection = decision.messages.find(message => (message.source as { kind?: string }).kind === 'skill-invocation')
+    expect(injection?.source).toMatchObject({ kind: 'skill-invocation', name: 'dot_dict', form: 'instructions' })
+    const body = injection?.content[0]
+    if (body?.type !== 'text') throw new Error('expected text injection')
+    expect(body.text).toContain('Actual dot_dict instructions.')
+    const negative = await proposeStep(ctx, agent, [gesture('/dot__dict /_dot_dict /dot_dict_ /dot_dict/refs')])
+    if (negative.kind !== 'enter') throw new Error('expected enter')
+    expect(negative.messages.some(message => (message.source as { kind?: string }).kind === 'skill-invocation')).toBe(false)
+  })
+
   it('injects an ordinary skill the same way (one uniform user-explicit path)', async () => {
     const { ctx, agent } = await invokeHarness()
     const decision = await proposeStep(ctx, agent, [gesture('/shared-skill go')])

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import type { Stats } from 'node:fs'
-import { mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -113,6 +113,15 @@ async function settle(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0))
 }
 
+async function providerSkillNames(
+  provider: InstanceType<typeof SkillFileSystem.FileSystemSkillProvider>,
+  cwd: string,
+): Promise<string[]> {
+  const result = await provider.list({ cwd })
+  if (!Array.isArray(result)) throw new Error('expected provider candidates')
+  return result.map(skill => skill.name)
+}
+
 beforeEach(() => {
   watcherHarness.watchers.length = 0
   watcherHarness.startupErrors.length = 0
@@ -181,7 +190,7 @@ describe('skill-filesystem watcher failures', () => {
       watchPollIntervalMs: 10,
     })
     expect(await ctx.skills.snapshot()).toEqual({ skills: [], complete: true })
-    expect(watcherHarness.watchFiles).toHaveLength(2)
+    expect(watcherHarness.watchFiles).toHaveLength(4)
     let invalidations = 0
     ctx.on('skills/change', () => { invalidations += 1 })
 
@@ -191,7 +200,7 @@ describe('skill-filesystem watcher failures', () => {
     await settle()
 
     expect(invalidations).toBe(0)
-    expect(watcherHarness.watchFiles).toHaveLength(2)
+    expect(watcherHarness.watchFiles).toHaveLength(4)
     await fiber.dispose()
   })
 
@@ -287,6 +296,65 @@ describe('skill-filesystem watcher failures', () => {
     first.emitter.emit('change', join(first.path, 'watched-skill/SKILL.md'))
     first.emitter.emit('error', new Error('late error'))
     await settle()
+  })
+
+  it.each(['project', 'user'])('updates a retained %s alias descriptor and releases obsolete probes', async (scope) => {
+    const home = await tempDir('skill-watch-alias-filter-home')
+    const project = await tempDir('skill-watch-alias-filter-project')
+    const rootBase = scope === 'project' ? project : home
+    const root = join(rootBase, '.agents/skills')
+    await mkdir(join(project, '.git'), { recursive: true })
+    await writeSkill(root, 'visible-skill')
+    await mkdir(join(root, '.system'), { recursive: true })
+    await writeFile(join(root, '.system/SKILL.md'), '---\nname: hidden-system\ndescription: hidden system\n---\n\nBody.\n')
+
+    const ctx = new Context()
+    await ctx.plugin(SkillRegistry)
+    let provider!: InstanceType<typeof SkillFileSystem.FileSystemSkillProvider>
+    const disposeProvider = ctx.skills.registerProvider((control) => {
+      provider = new SkillFileSystem.FileSystemSkillProvider(ctx, control, {
+        dshHome: join(home, '.dsh'),
+        agentsHome: join(home, '.agents'),
+        watch: true,
+        watchPollIntervalMs: 10,
+        watchStabilityThresholdMs: 20,
+      })
+      return provider
+    })
+    try {
+      await expect(providerSkillNames(provider, project)).resolves.toEqual(['hidden-system', 'visible-skill'])
+      const rootPath = await realpath(root)
+      const watcher = watcherHarness.watchers.find(control => control.path === rootPath)
+      if (watcher === undefined) throw new Error('expected the project agent-root watcher')
+      expect(watcherHarness.watchers.filter(control => control.path === rootPath)).toHaveLength(1)
+      const aliasProbe = watcherHarness.watchFiles.find(control => control.path === join(rootBase, '.codex'))
+      expect(aliasProbe).toBeDefined()
+
+      await symlink(join(rootBase, '.agents'), join(rootBase, '.codex'), process.platform === 'win32' ? 'junction' : 'dir')
+      await expect(providerSkillNames(provider, project)).resolves.toEqual(['visible-skill'])
+      expect(watcherHarness.watchers.filter(control => control.path === rootPath)).toEqual([watcher])
+      expect(watcherHarness.watchFiles).not.toContain(aliasProbe)
+
+      let invalidations = 0
+      ctx.on('skills/change', () => { invalidations += 1 })
+      watcher.emitter.emit('change', join(rootPath, '.system/SKILL.md'))
+      await settle()
+      expect(invalidations).toBe(0)
+      watcher.emitter.emit('change', join(rootPath, 'visible-skill/SKILL.md'))
+      await settle()
+      expect(invalidations).toBe(1)
+
+      expect((await lstat(join(rootBase, '.codex'))).isSymbolicLink()).toBe(true)
+      await unlink(join(rootBase, '.codex'))
+      await expect(providerSkillNames(provider, project)).resolves.toEqual(['hidden-system', 'visible-skill'])
+      expect(watcherHarness.watchers.filter(control => control.path === rootPath)).toEqual([watcher])
+      watcher.emitter.emit('change', join(rootPath, '.system/SKILL.md'))
+      await settle()
+      expect(invalidations).toBe(2)
+    } finally {
+      await provider.dispose()
+      disposeProvider()
+    }
   })
 
   it('replaces a retained watcher when its root emits unlinkDir', async () => {

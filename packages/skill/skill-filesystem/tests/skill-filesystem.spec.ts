@@ -32,6 +32,8 @@ async function writeFlatSkill(root: string, name: string, description: string, b
 
 class TestFileSystem extends FileSystem {
   listDirCalls = 0
+  resolveSignals: Array<AbortSignal | undefined> = []
+  resolveTargetKeys = new Map<string, string>()
   failResolvePaths = new Set<string>()
   failStatPaths = new Set<string>()
   failListDirPaths = new Set<string>()
@@ -44,10 +46,11 @@ class TestFileSystem extends FileSystem {
   readTextSignals: Array<AbortSignal | undefined> = []
   readTextOverride?: (target: FsTarget, signal?: AbortSignal) => Promise<string>
 
-  override async resolve(path: string): Promise<FsTarget> {
+  override async resolve(path: string, options?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
+    this.resolveSignals.push(options?.signal)
     if (this.failResolvePaths.has(path)) throw new FsError('resolve failed', 'FS_NOT_FOUND')
     if (this.errorResolvePaths.has(path)) throw new Error('resolve temporarily failed')
-    return { targetKey: path as never, displayPath: path }
+    return { targetKey: (this.resolveTargetKeys.get(path) ?? path) as never, displayPath: path }
   }
 
   override processPath(target: FsTarget): string { return String(target.targetKey) }
@@ -215,6 +218,146 @@ describe('FileSystemSkillProvider', () => {
     const noGit = await tempDir('skill-no-git')
     await writeSkill(join(noGit, '.dsh/skills'), 'fallback-root', 'Fallback root')
     expect((await ctx.skills.list({ cwd: noGit })).map(skill => skill.name)).toContain('fallback-root')
+  })
+
+  it('discovers project and user agent aliases in declaration order and excludes Codex system skills', async () => {
+    const home = await tempDir('skill-alias-roots-home')
+    const project = await tempDir('skill-alias-roots-project')
+    await mkdir(join(project, '.git'), { recursive: true })
+    await writeSkill(join(project, '.agents/skills'), 'project-agents', 'Project agents')
+    await writeSkill(join(project, '.claude/skills'), 'project-claude', 'Project Claude')
+    await writeSkill(join(project, '.codex/skills'), 'project-codex', 'Project Codex')
+    await writeSkill(join(project, '.codex/skills/.system'), 'project-system', 'Project system')
+    await writeSkill(join(home, '.agents/skills'), 'user-agents', 'User agents')
+    await writeSkill(join(home, '.claude/skills'), 'user-claude', 'User Claude')
+    await writeSkill(join(home, '.codex/skills'), 'user-codex', 'User Codex')
+    await writeSkill(join(home, '.codex/skills/.system'), 'user-system', 'User system')
+
+    const ctx = await setupLocal(home)
+    const skills = await ctx.skills.list({ cwd: project })
+
+    expect(skills.map(skill => skill.name)).toEqual([
+      'project-agents',
+      'project-claude',
+      'project-codex',
+      'user-agents',
+      'user-claude',
+      'user-codex',
+    ])
+    expect(skills.find(skill => skill.name === 'project-system')).toBeUndefined()
+    expect(skills.find(skill => skill.name === 'user-system')).toBeUndefined()
+  })
+
+  it('deduplicates filesystem alias identities before discovery and preserves the first configured path', async () => {
+    const home = await tempDir('skill-alias-dedupe-home')
+    const project = await tempDir('skill-alias-dedupe-project')
+    await mkdir(join(project, '.git'), { recursive: true })
+    const projectAliases = [
+      join(project, '.agents/skills'),
+      join(project, '.claude/skills'),
+      join(project, '.codex/skills'),
+    ]
+    for (const root of projectAliases) await writeSkill(root, 'shared-project', 'Shared project')
+    const userAliases = [
+      join(home, '.agents/skills'),
+      join(home, '.claude/skills'),
+      join(home, '.codex/skills'),
+    ]
+    for (const root of userAliases) await writeSkill(root, 'shared-user', 'Shared user')
+
+    const ctx = new Context()
+    await ctx.plugin(TestFileSystem)
+    const fs = ctx.fs as TestFileSystem
+    for (const root of projectAliases) fs.resolveTargetKeys.set(root, 'project-alias-target')
+    for (const root of userAliases) fs.resolveTargetKeys.set(root, 'user-alias-target')
+    await ctx.plugin(SkillRegistry)
+    await ctx.plugin(SkillFileSystem, {
+      dshHome: join(home, '.dsh'),
+      agentsHome: join(home, '.agents'),
+      watch: false,
+    })
+
+    const controller = new AbortController()
+    expect((await ctx.skills.list({ cwd: project, signal: controller.signal })).map(skill => skill.name))
+      .toEqual(['shared-project', 'shared-user'])
+    expect((await ctx.skills.get('shared-project', { cwd: project }))?.path)
+      .toBe(join(project, '.agents/skills/shared-project/SKILL.md'))
+    expect((await ctx.skills.get('shared-user', { cwd: project }))?.path)
+      .toBe(join(home, '.agents/skills/shared-user/SKILL.md'))
+    expect(fs.resolveSignals).toContain(controller.signal)
+  })
+
+  it('merges Codex system filtering into the first descriptor of a shared alias root', async () => {
+    const home = await tempDir('skill-alias-filter-home')
+    const project = await tempDir('skill-alias-filter-project')
+    await mkdir(join(project, '.git'), { recursive: true })
+    await writeSkill(join(project, '.agents/skills'), 'shared-alias', 'Shared alias')
+    await writeSkill(join(project, '.agents/skills/.system'), 'shared-system', 'Shared system')
+    await symlink(join(project, '.agents'), join(project, '.codex'), process.platform === 'win32' ? 'junction' : 'dir')
+
+    const ctx = await setupLocal(home)
+    const skills = await ctx.skills.list({ cwd: project })
+    expect(skills.map(skill => skill.name)).toEqual(['shared-alias'])
+    expect((await ctx.skills.get('shared-alias', { cwd: project }))?.path)
+      .toBe(join(project, '.agents/skills/shared-alias/SKILL.md'))
+  })
+
+  it('keeps an explicit agentsHome root and derives its sibling aliases from the parent', async () => {
+    const home = await tempDir('skill-alias-configured-home')
+    const agentsHome = join(home, 'shared-agents')
+    await writeSkill(join(agentsHome, 'skills'), 'configured-agents', 'Configured agents')
+    await writeSkill(join(home, '.claude/skills'), 'configured-claude', 'Configured Claude')
+    await writeSkill(join(home, '.codex/skills'), 'configured-codex', 'Configured Codex')
+
+    const ctx = await setupLocal(home, { agentsHome })
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual([
+      'configured-agents',
+      'configured-claude',
+      'configured-codex',
+    ])
+  })
+
+  it('keeps backend and trusted host identities in separate namespaces', async () => {
+    const home = await tempDir('skill-alias-identity-home')
+    const custom = join(home, 'custom')
+    const bundled = join(home, 'bundled')
+    await writeSkill(custom, 'backend-identity', 'Backend identity')
+    await writeSkill(bundled, 'host-identity', 'Host identity')
+
+    const ctx = new Context()
+    await ctx.plugin(TestFileSystem)
+    const fs = ctx.fs as TestFileSystem
+    fs.resolveTargetKeys.set(custom, await realpath(bundled))
+    await ctx.plugin(SkillRegistry)
+    await ctx.plugin(SkillFileSystem, {
+      includeDefaultRoots: false,
+      customSkillDirs: [custom],
+      bundledSkillDir: bundled,
+      watch: false,
+    })
+
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['backend-identity', 'host-identity'])
+  })
+
+  it('keeps a missing placeholder separate from a backend identity with the same key', async () => {
+    const home = await tempDir('skill-missing-identity-home')
+    const missing = join(home, 'missing-root')
+    const backend = join(home, 'backend-root')
+    await writeSkill(backend, 'backend-survivor', 'Backend survivor')
+
+    const ctx = new Context()
+    await ctx.plugin(TestFileSystem)
+    const fs = ctx.fs as TestFileSystem
+    fs.failResolvePaths.add(missing)
+    fs.resolveTargetKeys.set(backend, missing)
+    await ctx.plugin(SkillRegistry)
+    await ctx.plugin(SkillFileSystem, {
+      includeDefaultRoots: false,
+      customSkillDirs: [missing, backend],
+      watch: false,
+    })
+
+    expect((await ctx.skills.list()).map(skill => skill.name)).toEqual(['backend-survivor'])
   })
 
   it('lets project skills override runtime while runtime overrides custom and user skills', async () => {

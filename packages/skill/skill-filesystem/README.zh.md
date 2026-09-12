@@ -48,12 +48,14 @@ skill 可以是被扫描根目录顶层的目录 bundle `<name>/SKILL.md`，也�
 | Rank | 来源 | 路径 |
 |---|---|---|
 | 100 | `project-dsh` | `<projectRoot>/.dsh/skills` |
-| 200 | `project-agents` | `<projectRoot>/.agents/skills` |
+| 200 | `project-agents` | `<projectRoot>/.agents/skills` → `.claude/skills` → `.codex/skills` |
 | 300 | `custom` | `Config.customSkillDirs` |
 | 400 | `user-dsh` | `<dshHome>/skills` |
-| 500 | `user-agents` | `<agentsHome>/skills` |
+| 500 | `user-agents` | `<agentsHome>/skills` → `dirname(<agentsHome>)/.claude/skills` → `dirname(<agentsHome>)/.codex/skills` |
 
 项目根目录是包含 `.git` 的最近祖先目录；如果不存在，则使用当前 cwd。用户 DSH 根目录会跳过其 `.system` 子目录。`includeDefaultRoots: false` 会省略项目根、用户根以及 `$DSH_BUNDLED_SKILL_DIR` 默认值，使隔离提供方只看到自身配置的根；`bundledSkillDir` 会按 rank 600 添加一个随包提供的根目录。
+
+每个 agent 层都会按 `.agents`、`.claude`、`.codex` 的声明顺序使用根目录。配置的 `agentsHome/skills` 根保持第一顺序，两个用户别名从其父目录推导。`.codex/skills/.system` 目录会从发现结果和 watcher 事件中排除。在发现和注册 watcher 之前，提供方会按带命名空间的文件系统 `targetKey`、宿主规范路径或缺失根占位值去重；首个 descriptor 保留路径、来源、rank 和加载方式，重复 descriptor 的 `skipSystem` 按逻辑或合并。
 
 ### 挂载与配置
 
@@ -107,7 +109,7 @@ skill 可以是被扫描根目录顶层的目录 bundle `<name>/SKILL.md`，也�
 
 ### 发现流程
 
-发现过程先为查找 cwd 解析根列表，让监视管理器附加到每个根，再扫描每个根的直接条目：目录 bundle 解析为 `<name>/SKILL.md`，平铺文件解析为 `<name>.md`。每个文件都会解析 frontmatter——`name` 必须为 kebab-case，`description` 必填，调用键按严格布尔语法解析——候选项携带根目录的来源标签与 rank，供注册表与其他提供方合并。已确认缺失的路径属于有效空状态；格式错误或非文本条目会随警告跳过。
+发现过程先为查找 cwd 解析根列表，让监视管理器附加到每个根，再扫描每个根的直接条目：目录 bundle 解析为 `<name>/SKILL.md`，平铺文件解析为 `<name>.md`。每个文件都会解析 frontmatter——`name` 必须通过共享 `isSkillName` 语法校验，`description` 必填，调用键按严格布尔语法解析——候选项携带根目录的来源标签与 rank，供注册表与其他提供方合并。已确认缺失的路径属于有效空状态；格式错误或非文本条目会随警告跳过。
 
 ### 监视与失效
 

@@ -1,0 +1,12 @@
+version: 1
+scenario: skill-load-alias
+profile: headless
+composition: skill-alias
+recording: authored
+header:
+  class: skill
+  pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: text-turn
+workspace:
+  setup: editing-cordis-alias-skill
