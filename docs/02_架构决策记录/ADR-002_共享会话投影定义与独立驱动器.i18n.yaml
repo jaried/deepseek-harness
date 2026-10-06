@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for ADR-002_共享会话投影定义与独立驱动器.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/02_架构决策记录/ADR-002_共享会话投影定义与独立驱动器.md
+/adr-002-driver-independent-session-projections:
+  en: 2804748e42d06a2b
+  zh: 9bd7837f18df6a46

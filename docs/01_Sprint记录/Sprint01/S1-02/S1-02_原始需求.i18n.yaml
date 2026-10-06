@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for S1-02_原始需求.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-02/S1-02_原始需求.md
+/s1-02-original-requirement:
+  en: 5bf401c9e8f55f6d
+  zh: 08b76f4b9b79135d
+/s1-02-original-requirement/registration:
+  en: 308ec588b69ea79b
+  zh: eb61f18bc1a972ab
+/s1-02-original-requirement/atomic-result:
+  en: 05e4468b94ed708d
+  zh: 1b42b116da7803af
+/s1-02-original-requirement/acceptance:
+  en: 6e5205bffe1a19ff
+  zh: 9d485292e1a63832
+/s1-02-original-requirement/engineering-acceptance:
+  en: 46b474ec5e1df517
+  zh: ea7a498cbd5df964

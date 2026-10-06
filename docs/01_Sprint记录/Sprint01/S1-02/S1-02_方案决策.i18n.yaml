@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for S1-02_方案决策.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-02/S1-02_方案决策.md
+/s1-02-delegate-declared-factory-fork-before-local-history:
+  en: d7db88400826d078
+  zh: e4152057a1faf6a1
+/s1-02-delegate-declared-factory-fork-before-local-history/1-outcome-and-capability:
+  en: 6baf791c245929b0
+  zh: 54b382b7b422fe43
+/s1-02-delegate-declared-factory-fork-before-local-history/2-file-ownership:
+  en: 1c1d00c4ffb659f3
+  zh: 646836f21d0a6a4e
+/s1-02-delegate-declared-factory-fork-before-local-history/3-failure-recovery-and-execution-scope:
+  en: 37a2000cc0e124da
+  zh: d394bc66767b2b5b
+/s1-02-delegate-declared-factory-fork-before-local-history/4-fixtures-regression-and-evidence:
+  en: 65718ce7bf692507
+  zh: f6e6324f3b3f3057
+/s1-02-delegate-declared-factory-fork-before-local-history/5-stages-and-responsibilities:
+  en: da83bd759e30f4bc
+  zh: cff8c7c8b8603f21
+/s1-02-delegate-declared-factory-fork-before-local-history/12-implementation-items:
+  en: adea1523c1d06b48
+  zh: adea1523c1d06b48
+/s1-02-delegate-declared-factory-fork-before-local-history/12-implementation-items/i01:
+  en: 3274733c5b30480c
+  zh: 3274733c5b30480c
+/s1-02-delegate-declared-factory-fork-before-local-history/13-formal-relations:
+  en: cdc9b37e17094ee5
+  zh: a853de891e0796e5

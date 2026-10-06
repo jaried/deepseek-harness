@@ -4,13 +4,10 @@
 #   pnpm run verify-translation-pairing --write docs/00_待办列表/Sprint待办列表/Sprint01.md
 /sprint01-backlog:
   en: 909643bb2421f5db
-  zh: c196e2ca6ad3a596
+  zh: 255cf4b6adb84679
 /sprint01-backlog/sprint-goal:
-  en: 5395e92d96657ffa
-  zh: 4e9fc36749ce0a6b
-/sprint01-backlog/initialization-checklist:
-  en: d345182f4b6b1087
-  zh: 3c5188011665e45a
+  en: 1c4f0523f77b426d
+  zh: 699da29a31c1700b
 /sprint01-backlog/sprint-tracking:
-  en: 700a585a8863daa8
-  zh: 69bd50d479b050e0
+  en: ee4f678c616411e0
+  zh: a0cbe04e088a6abf

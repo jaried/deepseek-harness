@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for ADR-001_宿主工厂分叉能力与调用所有权.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/02_架构决策记录/ADR-001_宿主工厂分叉能力与调用所有权.md
+/adr-001-native-factory-fork-ownership:
+  en: 23ffc8d6f6228aba
+  zh: 3714989d3928a978

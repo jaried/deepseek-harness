@@ -1,0 +1,27 @@
+{
+  "issueId": "S1-01",
+  "solutionVersion": "S1-01-solution-v1",
+  "status": "pass",
+  "contractVersion": "implementation-item-v1",
+  "items": [
+    {
+      "item_id": "I01",
+      "objective": "原生主会话可以直接注册默认聊天所需的inbox/turnBoundary投影，保持旧队列和显示语义，且不加载或启动默认AgentLoop。",
+      "owner_surface": "DSH fork内纯投影定义、其窄公开叶入口及旧AgentLoop消费迁移；只迁移当前两个definition，具体Inbox命令仍由各driver实现。",
+      "allowed_scope": "上述纯定义搬迁、manifest本能力行、旧driver imports/兼容导出、测试和对应文档；keys/stateVersion/event fold/wire不变，原模型loop/Factory/队列算法留原owner。",
+      "completion_evidence": "原仓源码/测试commit、叶产物与依赖闭包、旧/新consumer相同固定event fold/wire trace、零AgentLoop/Factory/model/process/remote计数；各required原始runner结果。",
+      "required_behavior_checks": [
+        "同一最小turn/start、step/start/end、turn/end、inbox splice事件在旧AgentLoop与独立driver fixture fold结果逐项相同",
+        "inbox stateVersion=1、turnBoundary stateVersion=2、durable history/wire roundtrip及invalid splice/duplicate pending id错误保持",
+        "旧AgentLoop公开turnBoundary导出与内部inbox/schema测试入口仍指向同一definition；既有消费者保持兼容",
+        "叶入口public installed exports/NodeNext/runtime dependency闭包验证；import/register创建AgentLoop/Factory/model/tool/子进程/远端=0",
+        "只注册caller所需key；原native Profile factory仍=1；registry unregister/HMR及snapshot reader保持",
+        "focused旧inbox/turn boundary、Host/Client types、build/pack/实际Loader leaf消费与受影响文档检查真实通过"
+      ],
+      "item_dependencies": []
+    }
+  ],
+  "digest": "6fb1039000904e021283235f86cf52d9f167bdb98f4e0581405abb4a19d151bf",
+  "deliveryPrerequisites": [],
+  "materialization": "同票 Item 前置使用 item_dependencies；外部 Issue 产出按 deliveryPrerequisites 保留批准范围与门禁。"
+}

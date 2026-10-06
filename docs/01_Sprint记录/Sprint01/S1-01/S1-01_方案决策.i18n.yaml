@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for S1-01_方案决策.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-01/S1-01_方案决策.md
+/s1-01-driver-independent-session-projections:
+  en: 4485d5db09696b13
+  zh: 7a90e6156de6bd29
+/s1-01-driver-independent-session-projections/1-outcome-and-capability:
+  en: 70b7781618fa9169
+  zh: 077d7eb7fae96343
+/s1-01-driver-independent-session-projections/2-file-ownership:
+  en: 2cab51ea28954afc
+  zh: 9b731628a8d6b4b6
+/s1-01-driver-independent-session-projections/3-failure-recovery-and-execution-scope:
+  en: d2e3bc90051c0905
+  zh: e91d33647babe272
+/s1-01-driver-independent-session-projections/4-fixtures-regression-and-evidence:
+  en: 5a373116fa7200ff
+  zh: dc51cf4e3f7c8d3c
+/s1-01-driver-independent-session-projections/5-stages-and-responsibilities:
+  en: da83bd759e30f4bc
+  zh: cff8c7c8b8603f21
+/s1-01-driver-independent-session-projections/12-implementation-items:
+  en: adea1523c1d06b48
+  zh: adea1523c1d06b48
+/s1-01-driver-independent-session-projections/12-implementation-items/i01:
+  en: 3274733c5b30480c
+  zh: 3274733c5b30480c
+/s1-01-driver-independent-session-projections/13-formal-relations:
+  en: 7095019eda5f0615
+  zh: c55b7fba5b2837f5

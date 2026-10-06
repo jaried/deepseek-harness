@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for S1-01_本轮正式关联.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-01/S1-01_本轮正式关联.md
+/s1-01-formal-relations:
+  en: d8fcf4446d2c622f
+  zh: 436fd8f3c93126ff

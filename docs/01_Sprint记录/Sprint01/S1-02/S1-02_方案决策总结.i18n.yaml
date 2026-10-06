@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for S1-02_方案决策总结.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-02/S1-02_方案决策总结.md
+/s1-02-solution-decision-summary:
+  en: 99cc8522ce40d4f7
+  zh: c6ccdcf750671451

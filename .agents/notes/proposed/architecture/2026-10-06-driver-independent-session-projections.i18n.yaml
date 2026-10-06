@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-06-driver-independent-session-projections.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-10-06-driver-independent-session-projections.md
+/agent-note-driver-independent-session-projection-definitions:
+  en: e2186eda8e14c464
+  zh: 9c851987c4164f37
+/agent-note-driver-independent-session-projection-definitions/problem:
+  en: ecfdfa7e38c71b7e
+  zh: 90710a6acc54e254
+/agent-note-driver-independent-session-projection-definitions/proposal:
+  en: 9a3cc3ad4077339f
+  zh: 974c174d0e06ba2b
+/agent-note-driver-independent-session-projection-definitions/alternatives-considered:
+  en: fbca3e7edbe2e931
+  zh: 5e58d76fca85b956
+/agent-note-driver-independent-session-projection-definitions/acceptance-criteria:
+  en: d08875805f07df37
+  zh: a5f01a6ce929d8b0
+/agent-note-driver-independent-session-projection-definitions/risks:
+  en: fa5cbd545ea66390
+  zh: 062667cec5d593ef

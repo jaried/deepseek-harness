@@ -1,0 +1,10 @@
+# Bilingual-pair consistency record for S1-02_遗留问题.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/S1-02/S1-02_遗留问题.md
+/s1-02-legacy-records:
+  en: cad1de0531417e2d
+  zh: cb749398ab066705
+/s1-02-legacy-records/publication-capability-gaps:
+  en: 7f719ac49dcc16f1
+  zh: d855ca7efe11c28c

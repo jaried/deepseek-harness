@@ -1,0 +1,28 @@
+{
+  "issueId": "S1-02",
+  "solutionVersion": "S1-02-solution-v1",
+  "status": "pass",
+  "contractVersion": "implementation-item-v1",
+  "items": [
+    {
+      "item_id": "I01",
+      "objective": "默认三处主对话分叉请求在读取本地正文和 seed 前委托唯一已声明 factory；普通 driver 保持既有结果。",
+      "owner_surface": "DSH fork 仓库的 AgentRegistry fork 委托、SessionCommandController.fork 与其必要 metadata/workspace preflight；单票 owner 只改本仓这一条能力。",
+      "allowed_scope": "上述公开类型、fork/create-resume 对称委托、fork 函数、header-only 私有 helper、默认UI fork错误通知/locale、已确认的稳定意图字段、对应测试与随行为变化的文档；native 主对话 workspace 使用直接 membership；普通分支原正文、seed、preset、ancestor、create 路径保留。",
+      "completion_evidence": "本仓源码/测试 commit；focused registry+commands+session-fork+core/session fork tests；计数 trace；public-export/NodeNext consumer；真实 Loader fixture；候选包清单与 digest。原生模型效果属于后续 NativeFork 票。",
+      "required_behavior_checks": [
+        "声明方法时 claim=1，普通 create=0；未声明时完整旧 driver 行为通过",
+        "native branch 本地 observeSession 正文、snapshotEvents、seed、composeAgent、currentSelection、local create、corpus scan、模型调用均为0",
+        "live header 或一次 persisted stat；missing source / metadata failure / workspace preflight failure 在调用 driver 前拒绝，claim/effect=0",
+        "caller fiber/scope/ownerCtx 与 create/resume 对称，唯一 factory、dispose/HMR 清除能力，Provider在await期间卸载有真实终态",
+        "native error/unknown 保留 code/message/details 与真实 claim；workspace attach 失败暴露已确认 childId，完成请求只返回实际 published handle 的 id",
+        "atSeq 非法、cold source、未完成边界由 native provider明确拒绝；普通prefix/inbox/preset/subagent workspace全套旧保障保持",
+        "新增能力从 built root exports 与实际 Loader 组合可调用；keyless 用户可见快照及 affected docs/type gates通过"
+      ],
+      "item_dependencies": []
+    }
+  ],
+  "digest": "16cf3dbbfec1e3fe94d09a1171b5bc585fe57ca3ec186e6002080b803b3177af",
+  "deliveryPrerequisites": [],
+  "materialization": "同票 Item 前置使用 item_dependencies；外部 Issue 产出按 deliveryPrerequisites 保留批准范围与门禁。"
+}

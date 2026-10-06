@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-06-native-factory-fork.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-10-06-native-factory-fork.md
+/agent-note-native-factory-fork-before-local-history:
+  en: 076519cbe5708d41
+  zh: a4e580f9ef2aa8fa
+/agent-note-native-factory-fork-before-local-history/problem:
+  en: fd55821cb8ba3206
+  zh: 1576b2dfed824ab4
+/agent-note-native-factory-fork-before-local-history/proposal:
+  en: 3429e43ad099483b
+  zh: 565279105c3a3081
+/agent-note-native-factory-fork-before-local-history/alternatives-considered:
+  en: 02a1f68638a0f512
+  zh: b3f4eb7a69eb42d0
+/agent-note-native-factory-fork-before-local-history/acceptance-criteria:
+  en: f69d09760439cd72
+  zh: a8b9f72baa76a4f7
+/agent-note-native-factory-fork-before-local-history/risks:
+  en: 09fccd5115351713
+  zh: 43a35cd76437d656

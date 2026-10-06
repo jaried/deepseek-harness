@@ -1,0 +1,13 @@
+# Bilingual-pair consistency record for Sprint01_DSH主对话fork_联合方案决策.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/01_Sprint记录/Sprint01/00-联合方案决策/2026-10-06/Sprint01_DSH主对话fork_联合方案决策.md
+/sprint01-main-conversation-fork-joint-solution:
+  en: cecb123e96b2e0ff
+  zh: 9d63441b3668d68a
+/sprint01-main-conversation-fork-joint-solution/repository-issues:
+  en: 5a730f96b9738c3e
+  zh: a66878015ab86f55
+/sprint01-main-conversation-fork-joint-solution/stages-and-prerequisites:
+  en: 0575a441ea1797a2
+  zh: d979b66d7f94337f
