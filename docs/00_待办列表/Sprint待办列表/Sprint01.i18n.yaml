@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for Sprint01.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/00_待办列表/Sprint待办列表/Sprint01.md
+/sprint01-backlog:
+  en: 909643bb2421f5db
+  zh: c196e2ca6ad3a596
+/sprint01-backlog/sprint-goal:
+  en: 5395e92d96657ffa
+  zh: 4e9fc36749ce0a6b
+/sprint01-backlog/initialization-checklist:
+  en: d345182f4b6b1087
+  zh: 3c5188011665e45a
+/sprint01-backlog/sprint-tracking:
+  en: 700a585a8863daa8
+  zh: 69bd50d479b050e0
